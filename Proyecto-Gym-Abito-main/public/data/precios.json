@@ -1,0 +1,18 @@
+[
+  {
+    "descripcion": "5 días a la semana",
+    "precio": "30000"
+  },
+  {
+    "descripcion": "3 días a la semana",
+    "precio": "20000"
+  },
+  {
+    "descripcion": "2 días a la semana",
+    "precio": "15000"
+  },
+  {
+    "descripcion": "Día Libre",
+    "precio": "3000"
+  }
+]

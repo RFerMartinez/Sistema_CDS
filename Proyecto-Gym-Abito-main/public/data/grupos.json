@@ -1,0 +1,217 @@
+[
+  {
+    "nroGrupo": "1",
+    "horaInicio": "07:00:00",
+    "horaFin": "10:00:00",
+    "dias_asignados": [
+      {
+        "dia": "Lunes",
+        "capacidadMax": 20,
+        "empleado": null,
+        "alumnos_inscritos": 5
+      },
+      {
+        "dia": "Martes",
+        "capacidadMax": 20,
+        "empleado": null,
+        "alumnos_inscritos": 3
+      },
+      {
+        "dia": "Miércoles",
+        "capacidadMax": 20,
+        "empleado": null,
+        "alumnos_inscritos": 8
+      },
+      {
+        "dia": "Jueves",
+        "capacidadMax": 20,
+        "empleado": null,
+        "alumnos_inscritos": 12
+      },
+      {
+        "dia": "Viernes",
+        "capacidadMax": 20,
+        "empleado": null,
+        "alumnos_inscritos": 15
+      },
+      {
+        "dia": "Sábado",
+        "capacidadMax": 15,
+        "empleado": null,
+        "alumnos_inscritos": 10
+      }
+    ]
+  },
+  {
+    "nroGrupo": "2",
+    "horaInicio": "10:00:00",
+    "horaFin": "13:00:00",
+    "dias_asignados": [
+      {
+        "dia": "Lunes",
+        "capacidadMax": 15,
+        "empleado": null,
+        "alumnos_inscritos": 2
+      },
+      {
+        "dia": "Martes",
+        "capacidadMax": 15,
+        "empleado": null,
+        "alumnos_inscritos": 7
+      },
+      {
+        "dia": "Miércoles",
+        "capacidadMax": 15,
+        "empleado": null,
+        "alumnos_inscritos": 4
+      },
+      {
+        "dia": "Jueves",
+        "capacidadMax": 15,
+        "empleado": null,
+        "alumnos_inscritos": 9
+      },
+      {
+        "dia": "Viernes",
+        "capacidadMax": 15,
+        "empleado": null,
+        "alumnos_inscritos": 11
+      },
+      {
+        "dia": "Sábado",
+        "capacidadMax": 12,
+        "empleado": null,
+        "alumnos_inscritos": 8
+      }
+    ]
+  },
+  {
+    "nroGrupo": "3",
+    "horaInicio": "13:00:00",
+    "horaFin": "16:00:00",
+    "dias_asignados": [
+      {
+        "dia": "Lunes",
+        "capacidadMax": 18,
+        "empleado": null,
+        "alumnos_inscritos": 6
+      },
+      {
+        "dia": "Martes",
+        "capacidadMax": 18,
+        "empleado": null,
+        "alumnos_inscritos": 4
+      },
+      {
+        "dia": "Miércoles",
+        "capacidadMax": 18,
+        "empleado": null,
+        "alumnos_inscritos": 10
+      },
+      {
+        "dia": "Jueves",
+        "capacidadMax": 18,
+        "empleado": null,
+        "alumnos_inscritos": 8
+      },
+      {
+        "dia": "Viernes",
+        "capacidadMax": 18,
+        "empleado": null,
+        "alumnos_inscritos": 12
+      },
+      {
+        "dia": "Sábado",
+        "capacidadMax": 15,
+        "empleado": null,
+        "alumnos_inscritos": 5
+      }
+    ]
+  },
+  {
+    "nroGrupo": "4",
+    "horaInicio": "16:00:00",
+    "horaFin": "19:00:00",
+    "dias_asignados": [
+      {
+        "dia": "Lunes",
+        "capacidadMax": 25,
+        "empleado": null,
+        "alumnos_inscritos": 15
+      },
+      {
+        "dia": "Martes",
+        "capacidadMax": 25,
+        "empleado": null,
+        "alumnos_inscritos": 12
+      },
+      {
+        "dia": "Miércoles",
+        "capacidadMax": 25,
+        "empleado": null,
+        "alumnos_inscritos": 18
+      },
+      {
+        "dia": "Jueves",
+        "capacidadMax": 25,
+        "empleado": null,
+        "alumnos_inscritos": 20
+      },
+      {
+        "dia": "Viernes",
+        "capacidadMax": 25,
+        "empleado": null,
+        "alumnos_inscritos": 22
+      },
+      {
+        "dia": "Sábado",
+        "capacidadMax": 20,
+        "empleado": null,
+        "alumnos_inscritos": 14
+      }
+    ]
+  },
+  {
+    "nroGrupo": "5",
+    "horaInicio": "19:00:00",
+    "horaFin": "22:00:00",
+    "dias_asignados": [
+      {
+        "dia": "Lunes",
+        "capacidadMax": 22,
+        "empleado": null,
+        "alumnos_inscritos": 10
+      },
+      {
+        "dia": "Martes",
+        "capacidadMax": 22,
+        "empleado": null,
+        "alumnos_inscritos": 8
+      },
+      {
+        "dia": "Miércoles",
+        "capacidadMax": 22,
+        "empleado": null,
+        "alumnos_inscritos": 14
+      },
+      {
+        "dia": "Jueves",
+        "capacidadMax": 22,
+        "empleado": null,
+        "alumnos_inscritos": 16
+      },
+      {
+        "dia": "Viernes",
+        "capacidadMax": 22,
+        "empleado": null,
+        "alumnos_inscritos": 18
+      },
+      {
+        "dia": "Sábado",
+        "capacidadMax": 18,
+        "empleado": null,
+        "alumnos_inscritos": 18
+      }
+    ]
+  }
+]

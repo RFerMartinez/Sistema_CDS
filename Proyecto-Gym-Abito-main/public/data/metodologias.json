@@ -1,0 +1,32 @@
+[
+  {
+    "nombre": "Musculación",
+    "imagen": "/data/imgMetod/musculacion.jpg",
+    "descripcion": "Entrenamiento centrado en el desarrollo de la masa muscular y fuerza con cargas progresivas."
+  },
+  {
+    "nombre": "Funcional",
+    "imagen": "img/metodologias/funcional.jpg",
+    "descripcion": "Ejercicios que imitan movimientos de la vida diaria, mejorando la movilidad y estabilidad general."
+  },
+  {
+    "nombre": "Mantenimiento",
+    "imagen": "img/metodologias/mantenimiento.jpg",
+    "descripcion": "Rutinas orientadas a mantener un estado físico saludable, con ejercicios de baja y media intensidad."
+  },
+  {
+    "nombre": "Rehabilitación",
+    "imagen": "img/metodologias/rehabilitacion.jpg",
+    "descripcion": "Programa de ejercicios personalizados para recuperarse de lesiones y mejorar la movilidad."
+  },
+  {
+    "nombre": "Aeróbico",
+    "imagen": "img/metodologias/aerobico.jpg",
+    "descripcion": "Actividades cardiovasculares que mejoran la resistencia y la salud del corazón."
+  },
+  {
+    "nombre": "Preparación física para deportes",
+    "imagen": "img/metodologias/deportes.jpg",
+    "descripcion": "Entrenamiento específico orientado a mejorar el rendimiento en distintas disciplinas deportivas."
+  }
+]

@@ -1,0 +1,37 @@
+# ==============================================================================
+# CONFIGURACIÓN GLOBAL DE ENTORNO
+# ==============================================================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# ==============================================================================
+# BACKEND (gym_Abito_API-main)
+# ==============================================================================
+gym_Abito_API-main/venv/
+gym_Abito_API-main/.env
+gym_Abito_API-main/*.log
+gym_Abito_API-main/__pycache__/
+gym_Abito_API-main/pruebas_python/
+
+# ==============================================================================
+# FRONTEND (Proyecto-Gym-Abito-main)
+# ==============================================================================
+Proyecto-Gym-Abito-main/node_modules/
+Proyecto-Gym-Abito-main/dist/
+
+# Archivos de entorno del Frontend
+Proyecto-Gym-Abito-main/.env
+Proyecto-Gym-Abito-main/.env.local
+Proyecto-Gym-Abito-main/.env.*.local
+
+# Logs de empaquetadores
+Proyecto-Gym-Abito-main/npm-debug.log*
+Proyecto-Gym-Abito-main/yarn-debug.log*
+Proyecto-Gym-Abito-main/yarn-error.log*
+Proyecto-Gym-Abito-main/pnpm-debug.log*

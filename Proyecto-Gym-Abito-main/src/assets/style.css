@@ -1,0 +1,881 @@
+/* ===== RESET Y ESTILOS GENERALES ===== */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #000;
+  color: white;
+  overflow-x: hidden;
+}
+
+/* Navbar con z-index para estar encima (común) */
+.navbar {
+  z-index: 1000;
+}
+
+/* Estilos para el menú móvil */
+@media (max-width: 767px) {
+  #mobileMenu .btn {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* ===== SECCIONES GLOBALES ===== */
+.black-section {
+  background-color: #000;
+  color: white;
+  padding: 100px 20px;
+  min-height: 500px;
+}
+
+.section-title {
+  text-align: center;
+  padding-top: 30px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* SOLO 2 columnas */
+  gap: 30px;
+  margin-top: 30px;
+  padding: 0 20px;
+}
+
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: 1fr; /* una sola columna en celular */
+    gap: 20px; /* opcional: menos espacio entre tarjetas */
+  }
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* ===== MODAL GLOBAL ===== */
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #222;
+  padding: 40px;
+  border-radius: 10px;
+  width: 95%;
+  max-width: 800px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,0,0,0.7);
+}
+
+.modal-content img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+#modal-title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: white;
+}
+
+#modal-desc {
+  font-size: 1.1rem;
+  color: #ccc;
+  margin-bottom: 20px;
+}
+
+.modal-content button {
+  margin-top: 15px;
+  background-color: #e50914;
+  border: none;
+  padding: 10px 15px;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.hidden {
+  display: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+.login-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.login-layout > :first-child {
+  flex: 1; /* ocupa el espacio disponible */
+}
+
+/* --- Estilos Globales para Botones de Acción --- */
+
+/* Contenedor para centrar el botón (opcional, pero útil) */
+.contenedor-boton-agregar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+/* Botón principal de "Agregar" */
+.btn-agregar-global {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: #e50914; /* Rojo del logo */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3); /* Sombra roja */
+}
+
+.btn-agregar-global:hover {
+  background: #d32f2f; /* Rojo más oscuro */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(229, 9, 20, 0.4);
+}
+
+/* Responsive para el botón global */
+@media (max-width: 480px) {
+  .btn-agregar-global {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* --- Estilos Globales para Mensajes de Confirmación --- */
+/* (Ya que ambos componentes los usan, mejor hacerlos globales también) */
+
+.mensaje-confirmacion-global {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #e50914; /* Rojo del logo */
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+  z-index: 1000;
+}
+
+.contenido-mensaje-global {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.btn-cerrar-mensaje-global {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.3rem;
+  margin-left: 1rem;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-cerrar-mensaje-global:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive para mensaje */
+@media (max-width: 768px) {
+  .mensaje-confirmacion-global {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    text-align: center;
+  }
+}
+
+/* Estilos para el boton de volver de infoalumno e ingresopersona
+/* --- Estilo Global Botón Volver --- */
+.btn-volver-global {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border: 2px solid #e50914; /* Rojo del logo */
+  background: white;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  color: #e50914; /* Rojo del logo */
+  text-decoration: none;
+  white-space: nowrap; /* Evita que el texto se parta */
+}
+
+.btn-volver-global:hover {
+  background: #e50914; /* Rojo del logo */
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3); /* Sombra roja */
+}
+
+/* ================================================= */
+/* ===         ESTILOS GLOBALES DE CARGA         === */
+/* ================================================= */
+
+/* --- EL CÓDIGO NUEVO Y CORRECTO --- */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: inherit; 
+  color: #6c757d;
+  font-style: italic;
+  gap: 1rem;
+  text-align: center; /* Centra el texto */
+  
+  /* --- POSICIONAMIENTO (Como antes) --- */
+  position: absolute; 
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0; 
+  
+  /* --- NUEVO: A PRUEBA DE DESBORDES --- */
+  
+  /* (1) Añadimos un poco de padding lateral */
+  padding: 0 1rem; 
+  
+  /* (2) Le decimos que el padding NO lo haga más ancho */
+  box-sizing: border-box; 
+  
+  /* (3) LA MÁS IMPORTANTE: 
+     Fuerza al texto a romperse si es muy largo */
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3; 
+  border-top: 4px solid #e91e63;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0; /* Evita que el spinner se achique */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive para el spinner global */
+@media (max-width: 480px) {
+  .spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 3px;
+  }
+}
+
+/* ================================================= */
+/* ===     ESTILOS COMPARTIDOS (Formulario)      === */
+/* ================================================= */
+
+/* Contenedor principal de la vista (usado por IngresoPersona y NuevoAlumno) */
+.contenedor-vista-admin {
+  padding: 2rem;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  min-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  position: relative; /* Clave para centrar el loading */
+}
+
+/* Encabezado (Botón Volver + Título) */
+.encabezado-info {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+.encabezado-info .btn-volver-global {
+  justify-self: start; 
+}
+
+/* Tarjeta principal que contiene todo */
+.tarjeta-formulario {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+.tarjeta-contenido {
+  padding: 2rem;
+}
+
+/* Separador visual */
+.separador-seccion { 
+  height: 1px; 
+  background: linear-gradient(to right, transparent, #e0e0e0, transparent); 
+  margin: 2rem 0; 
+}
+
+/* --- Estilos para Formulario (Nuevos y Reutilizados) --- */
+
+/* Contenedor de una sección de formulario (ej. Suscripción) */
+.seccion-formulario { 
+  margin-bottom: 2.5rem; 
+}
+
+/* Título de una sección de formulario */
+.titulo-seccion-formulario { 
+  font-size: 1.3rem; 
+  color: #2c3e50; 
+  margin-bottom: 1.5rem; 
+  border-bottom: 2px solid #d32f2f;
+  padding-bottom: 0.5rem; 
+  display: flex; 
+  align-items: center; 
+  gap: 0.8rem; 
+}
+.titulo-seccion-formulario i { 
+  color: #d32f2f;
+}
+
+/* --- Estilos para Inputs (Nuevos) --- */
+.formulario-grid-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem 2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+.form-label i {
+  margin-right: 0.3rem;
+  color: #9ca3af;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: #fdfdfd;
+}
+.form-control:focus {
+  outline: none;
+  border-color: #e91e63;
+  box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
+  background: white;
+}
+/* Estilo específico para Selects */
+.form-control.select-localidad:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+}
+
+
+/* --- Estilos para Sección Gimnasio (Reutilizados) --- */
+.seccion-ingreso { 
+  margin-top: 2rem; 
+  padding-top: 2rem; 
+  border-top: 1px solid #e0e0e0; 
+}
+.seccion-horarios.deshabilitado { 
+  opacity: 0.5; 
+  pointer-events: none; 
+}
+.info-horarios { 
+  font-size: 0.9rem; 
+  color: #6c757d; 
+  margin-bottom: 1rem; 
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem; 
+  background-color: #f8f9fa; 
+  padding: 0.8rem 1rem; 
+  border-radius: 6px; 
+  border: 1px solid #e9ecef; 
+}
+.info-horarios i { 
+  color: #17a2b8; 
+}
+.contenedor-tabla-horarios { 
+  border: 1px solid #e0e0e0; 
+  border-radius: 8px; 
+  padding: 1rem; 
+  background: #fafafa; 
+}
+
+/* --- Estilos para Botones (Reutilizados) --- */
+.seccion-botones { 
+  margin-top: 2rem; 
+  padding-top: 2rem; 
+  border-top: 1px solid #e0e0e0; 
+}
+.botones-accion { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+  gap: 1rem; 
+}
+.btn-accion { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 0.5rem; 
+  padding: 0.9rem 1.2rem; 
+  border: none; 
+  border-radius: 8px; 
+  font-family: 'Poppins', sans-serif; 
+  font-weight: 600; 
+  font-size: 0.95rem; 
+  cursor: pointer; 
+  transition: all 0.3s ease; 
+}
+.btn-cancelar { /* Renombrado de 'btn-cancelar-ingreso' */
+  background: #f44336; 
+  color: white; 
+} 
+.btn-cancelar:hover { 
+  background: #D32F2F; 
+  transform: translateY(-2px); 
+}
+.btn-confirmar { /* Renombrado de 'btn-confirmar-ingreso' */
+  background: #4CAF50; 
+  color: white; 
+}
+.btn-confirmar:hover:not(:disabled) { 
+  background: #388E3C; 
+  transform: translateY(-2px); 
+}
+.btn-confirmar:disabled { 
+  background: #cccccc; 
+  cursor: not-allowed; 
+  transform: none; 
+}
+.mensaje-validacion { 
+  color: #d32f2f; 
+  font-size: 0.9rem; 
+  margin-top: 1rem; 
+  text-align: right; 
+  display: flex; 
+  align-items: center; 
+  justify-content: flex-end; 
+  gap: 0.3rem; 
+}
+.mensaje-validacion.full-width {
+  justify-content: center;
+  text-align: center;
+}
+
+/* --- Responsive (General) --- */
+@media (max-width: 768px) {
+  .contenedor-vista-admin { padding: 1.5rem; }
+  .encabezado-info {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    align-items: stretch;
+    grid-template-columns: none;
+  }
+  .encabezado-info .btn-volver-global {
+    justify-content: center;
+    margin-bottom: 1rem;
+    justify-self: auto;
+  }
+  .tarjeta-contenido { padding: 1.5rem; }
+  .separador-seccion { margin: 1.5rem 0; }
+  .botones-accion { grid-template-columns: 1fr; }
+  .btn-accion { padding: 0.8rem 1rem; font-size: 0.9rem; }
+  .mensaje-validacion { justify-content: center; text-align: center; }
+}
+
+@media (max-width: 480px) {
+  .contenedor-vista-admin { padding: 1rem; }
+  .tarjeta-contenido { padding: 1rem; }
+  .separador-seccion { margin: 1rem 0; }
+  .form-control { padding: 0.7rem; }
+}
+
+/* --- V V V NUEVO: ESTILOS PARA MODAL DE ÉXITO V V V --- */
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050; 
+  backdrop-filter: blur(5px);
+}
+
+.modal-exito {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  border-top: 5px solid #4CAF50; /* Borde verde de éxito */
+}
+
+.modal-header-exito {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-header-exito i {
+  font-size: 3rem;
+  color: #4CAF50; /* Verde */
+}
+
+.modal-header-exito h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.modal-body-exito {
+  margin-bottom: 2rem;
+}
+
+.modal-body-exito p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: #495057;
+  line-height: 1.5;
+}
+
+.modal-body-exito p b {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.modal-footer-exito {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-modal-continuar {
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-modal-continuar:hover {
+  background: #388E3C;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* ^ ^ ^ FIN ESTILOS MODAL ^ ^ ^ */
+/* ================================================= */
+/* === ESTILOS GLOBALES PARA MODALES (CONFIRMACIÓN) === */
+/* ================================================= */
+
+.modal-confirmacion, .modal-sin-cambios {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: modalAppear 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  text-align: center; 
+}
+
+/* ... (el .modal-header, .modal-body, etc. no cambian) ... */
+.modal-header {
+  display: flex;
+  flex-direction: column; 
+  align-items: center;   
+  gap: 1rem;             
+  margin-bottom: 1rem;
+}
+.modal-header i {
+  font-size: 3rem;       
+}
+.modal-confirmacion .modal-header i {
+  color: #ff9800; /* Naranja */
+}
+.modal-sin-cambios .modal-header i {
+  color: #2196F3; /* Azul */
+}
+.modal-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.6rem; 
+  font-weight: 600;  
+}
+.modal-body {
+  margin-bottom: 2rem;
+}
+.modal-body p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #495057;
+  line-height: 1.5; 
+}
+
+/* --- ESTA ES LA REGLA CORREGIDA --- */
+/*
+  Añadimos las clases raíz de Suscripciones y Trabajos
+  para que también centren sus botones.
+*/
+.contenedor-vista-admin .modal-footer,
+.contenedor-modificar-datos .modal-footer,
+.contenedor-modificar-sustrab .modal-footer,
+.contenedor-suscripciones .modal-footer,  /* <-- AÑADIDO */
+.contenedor-trabajos .modal-footer,       /* <-- AÑADIDO */
+.modal-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: center; /* <-- La clave del centrado */
+  flex-wrap: wrap; 
+}
+/* --- FIN DE LA REGLA CORREGIDA --- */
+
+
+/* ... (El resto de .btn-modal, etc., quedan igual) ... */
+.btn-modal {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.btn-cancelar-modal {
+  background: #f44336;
+  color: white;
+}
+.btn-cancelar-modal:hover {
+  background: #d32f2f;
+}
+.btn-confirmar-modal {
+  background: #4caf50;
+  color: white;
+}
+.btn-confirmar-modal:hover {
+  background: #388e3c;
+}
+.btn-aceptar-modal {
+  background: #2196F3;
+  color: white;
+}
+.btn-aceptar-modal:hover {
+  background: #1976D2;
+}
+.btn-volver-modal {
+  background: #2196F3;
+  color: white;
+}
+.btn-volver-modal:hover {
+  background: #1976D2;
+}
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive para estos modales */
+@media (max-width: 768px) {
+  .modal-confirmacion, .modal-sin-cambios {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  /* Hacemos esta regla específica también */
+  .contenedor-vista-admin .modal-footer,
+  .contenedor-modificar-datos .modal-footer,
+  .contenedor-modificar-sustrab .modal-footer,
+  .contenedor-suscripciones .modal-footer,  /* <-- AÑADIDO */
+  .contenedor-trabajos .modal-footer,       /* <-- AÑADIDO */
+  .modal-footer {
+    flex-direction: column;
+  }
+}
+/* =============================================== */
+/* ===    ESTILOS GLOBALES PARA MODAL DE ERROR   === */
+/* =============================================== */
+/* NOTA: Esto asume que ya tienes .modal-overlay 
+  y .modal-fade en tu CSS global.
+*/
+
+.modal-error {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  border-top: 5px solid #F44336; /* Borde rojo de error */
+}
+
+.modal-header-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-header-error i {
+  font-size: 3rem;
+  color: #F44336; /* Rojo */
+}
+
+.modal-header-error h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.modal-body-error {
+  margin-bottom: 2rem;
+}
+
+.modal-body-error p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: #495057;
+  line-height: 1.5;
+  /* Permite que los mensajes largos de la API se corten */
+  word-wrap: break-word; 
+}
+
+.modal-footer-error {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-modal-error {
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  background: #F44336; /* Rojo */
+  color: white;
+}
+
+.btn-modal-error:hover {
+  background: #D32F2F; /* Rojo oscuro */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}

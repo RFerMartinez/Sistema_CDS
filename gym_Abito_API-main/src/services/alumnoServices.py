@@ -1,0 +1,628 @@
+
+from datetime import time, date, timedelta
+from asyncpg import Connection
+from typing import List, Optional
+
+import calendar
+
+from schemas.alumnoSchema import (
+    AlumnoActivate,
+    AlumnoActivateResponse,
+    AlumnoCreateFull,
+    AlumnoListado,
+    AlumnoDetalle,
+    HorarioAlumno,
+    HorarioAsignado,
+    HorariosUpdate,
+    HorariosAlumnoResponse,
+    AlumnoPerfilUpdate,
+    AlumnoPlanUpdate
+)
+
+from utils.security import get_password_hash
+from utils.exceptions import (
+    NotFoundException,
+    DuplicateEntryException,
+    BusinessRuleException,
+    DatabaseException
+)
+
+async def activar_alumno(conn: Connection, data: AlumnoActivate) -> AlumnoActivateResponse:
+    """
+    Servicio para activar una persona como alumno activo.
+    Realiza las siguientes acciones en una transacción:
+    1.  Verifica que la Persona exista y no sea ya un Alumno.
+    2.  Verifica la existencia de Trabajo y Suscripción.
+    3.  Inserta el registro en la tabla "Alumno".
+    4.  Inserta el registro en la tabla "AlumnoActivo".
+    5.  Verifica la capacidad y asigna los horarios en la tabla "Asiste".
+    """
+    async with conn.transaction():
+        try:
+            # 1. Verificar que la Persona existe
+            persona = await conn.fetchrow('SELECT * FROM "Persona" WHERE dni = $1', data.dni)
+            if not persona:
+                raise NotFoundException("Persona", data.dni)
+
+            # 2. Verificar que no sea ya un alumno
+            es_alumno = await conn.fetchval('SELECT 1 FROM "Alumno" WHERE dni = $1', data.dni)
+            if es_alumno:
+                raise DuplicateEntryException("Alumno", data.dni)
+
+            # 3. Validar FKs (Trabajo y Suscripcion)
+            trabajo = await conn.fetchval('SELECT 1 FROM "Trabajo" WHERE "nombreTrabajo" = $1', data.nombreTrabajo)
+            if not trabajo:
+                raise NotFoundException("Trabajo", data.nombreTrabajo)
+            
+            # (Cambio) Solo verificamos existencia con SELECT 1, no necesitamos el precio
+            suscripcion_existe = await conn.fetchval('SELECT 1 FROM "Suscripcion" WHERE "nombreSuscripcion" = $1', data.nombreSuscripcion)
+            if not suscripcion_existe:
+                raise NotFoundException("Suscripción", data.nombreSuscripcion)
+
+            # 4. Insertar en Alumno
+            await conn.execute('''
+                INSERT INTO "Alumno" (dni, "nombreTrabajo", "nombreSuscripcion", nivel, deporte)
+                VALUES ($1, $2, $3, $4, $5)
+            ''', data.dni, data.nombreTrabajo, data.nombreSuscripcion, data.nivel, data.deporte)
+
+            # 5. Insertar en AlumnoActivo
+            await conn.execute('INSERT INTO "AlumnoActivo" (dni) VALUES ($1)', data.dni)
+
+            # 6. Asignar horarios
+            for horario in data.horarios:
+                nroGrupo = horario.nroGrupo
+
+                # Verificar capacidad del grupo en ese día
+                query_capacidad = '''
+                    SELECT p."capacidadMax", COUNT(a.dni) as inscritos
+                    FROM "Pertenece" p
+                    LEFT JOIN "Asiste" a ON p."nroGrupo" = a."nroGrupo" AND p.dia = a.dia
+                    WHERE p."nroGrupo" = $1 AND p.dia = $2
+                    GROUP BY p."capacidadMax"
+                '''
+                capacidad = await conn.fetchrow(query_capacidad, nroGrupo, horario.dia)
+
+                if not capacidad:
+                    raise NotFoundException("Asignación Horario-Día", f"Grupo {nroGrupo} no está asignado al día {horario.dia}")
+
+                if capacidad['inscritos'] >= capacidad['capacidadMax']:
+                    raise BusinessRuleException(f"El grupo {nroGrupo} del día {horario.dia} está completo.")
+
+                await conn.execute('''
+                    INSERT INTO "Asiste" (dni, "nroGrupo", dia)
+                    VALUES ($1, $2, $3)
+                ''', data.dni, nroGrupo, horario.dia)
+
+            return AlumnoActivateResponse(
+                dni=persona['dni'],
+                nombre=persona['nombre'],
+                apellido=persona['apellido'],
+                email=persona['email'],
+                message="Alumno activado correctamente." # Mensaje actualizado
+            )
+
+        except (NotFoundException, DuplicateEntryException, BusinessRuleException) as e:
+            raise e 
+        except Exception as e:
+            raise DatabaseException("activar alumno", str(e))
+
+async def listar_alumnos_detalle(conn: Connection) -> List[AlumnoListado]:
+    """
+    Servicio para listar todos los alumnos con detalles específicos para administradores.
+    Combina información de las tablas Persona, Alumno, AlumnoActivo, Cuota y Asiste.
+    """
+    try:
+        query = """
+        SELECT
+            p.dni,
+            p.nombre,
+            p.apellido,
+            (CASE WHEN aa.dni IS NOT NULL THEN TRUE ELSE FALSE END) as activo,
+            (
+                SELECT COUNT(*)
+                FROM "Cuota" c
+                WHERE c.dni = a.dni AND c.pagada = FALSE
+            ) as "cuotasPendientes",
+            COALESCE(
+                (
+                    SELECT
+                        CASE
+                            WHEN LEFT(MIN(asis."nroGrupo"), 1) IN ('1', '2') THEN 'Mañana'
+                            WHEN LEFT(MIN(asis."nroGrupo"), 1) IN ('3', '4', '5') THEN 'Tarde'
+                            ELSE 'No asignado'
+                        END
+                    FROM "Asiste" asis
+                    WHERE asis.dni = a.dni
+                ),
+                'No asignado'
+            ) as turno
+        FROM "Alumno" a
+        JOIN "Persona" p ON a.dni = p.dni
+        LEFT JOIN "AlumnoActivo" aa ON a.dni = aa.dni
+        ORDER BY p.apellido, p.nombre;
+        """
+        
+        resultados = await conn.fetch(query)
+        
+        # Mapea los resultados al esquema Pydantic
+        return [AlumnoListado(**dict(row)) for row in resultados]
+
+    except Exception as e:
+        raise DatabaseException("listar alumnos", str(e))
+
+async def obtener_detalle_alumno(conn: Connection, dni: str) -> AlumnoDetalle:
+    """
+    Servicio para obtener la vista detallada de un único alumno por su DNI.
+    """
+    try:
+        query = """
+        SELECT
+            p.dni,
+            p.nombre,
+            p.apellido,
+            p.sexo,
+            p.email,
+            p.telefono,
+            (CASE WHEN aa.dni IS NOT NULL THEN TRUE ELSE FALSE END) as activo,
+            (
+                SELECT COUNT(*)
+                FROM "Cuota" c
+                WHERE c.dni = a.dni AND c.pagada = FALSE
+            ) as "cuotasPendientes",
+            COALESCE(
+                (
+                    SELECT
+                        CASE
+                            WHEN LEFT(MIN(asis."nroGrupo"), 1) IN ('1', '2') THEN 'Mañana'
+                            WHEN LEFT(MIN(asis."nroGrupo"), 1) IN ('3', '4', '5', '6') THEN 'Tarde'
+                            ELSE 'No asignado'
+                        END
+                    FROM "Asiste" asis
+                    WHERE asis.dni = a.dni
+                ),
+                'No asignado'
+            ) as turno,
+            a."nombreSuscripcion" as suscripcion,
+            a."nombreTrabajo" as trabajoactual,
+            d."nomProvincia" as provincia,
+            d."nomLocalidad" as localidad,
+            d.calle as calle,
+            d.numero as nro,
+            a.nivel as nivel
+        FROM "Alumno" a
+        JOIN "Persona" p ON a.dni = p.dni
+        LEFT JOIN "AlumnoActivo" aa ON a.dni = aa.dni
+        LEFT JOIN "Direccion" d ON a.dni = d.dni
+        WHERE a.dni = $1;
+        """
+        
+        result = await conn.fetchrow(query, dni)
+        
+        if not result:
+            raise NotFoundException("Alumno", dni)
+            
+        return AlumnoDetalle(**dict(result))
+
+    except NotFoundException:
+        raise
+    except Exception as e:
+        raise DatabaseException("obtener detalle de alumno", str(e))
+
+async def obtener_horarios_alumno(conn: Connection, dni: str) -> List[HorarioAlumno]:
+    """
+    Servicio para obtener los días y rangos horarios a los que asiste un alumno.
+    """
+    try:
+        # Verificamos que el alumno exista
+        alumno_existe = await conn.fetchval('SELECT 1 FROM "Alumno" WHERE dni = $1', dni)
+        if not alumno_existe:
+            raise NotFoundException("Alumno", dni)
+
+        # Modificamos la consulta para hacer JOIN con la tabla Horario
+        # TO_CHAR extrae solo la hora y minuto (HH24:MI) descartando los segundos
+        query = """
+        SELECT
+            a.dia,
+            a."nroGrupo",
+            TO_CHAR(h."horaInicio", 'HH24:MI') as "horaInicio",
+            TO_CHAR(h."horaFin", 'HH24:MI') as "horaFin"
+        FROM "Asiste" a
+        JOIN "Horario" h ON a."nroGrupo" = h."nroGrupo"
+        WHERE a.dni = $1
+        ORDER BY a.dia;
+        """
+        
+        resultados_db = await conn.fetch(query, dni)
+        
+        return [HorarioAlumno(**dict(row)) for row in resultados_db]
+
+    except NotFoundException:
+        raise
+    except Exception as e:
+        raise DatabaseException("obtener horarios de alumno", str(e))
+
+async def actualizar_horarios_alumno(conn: Connection, dni: str, data: HorariosUpdate) -> HorariosAlumnoResponse:
+    """
+    Reemplaza la lista de horarios de un alumno activo.
+    1. Verifica que el alumno esté activo.
+    2. Borra todos sus horarios anteriores.
+    3. Inserta los nuevos horarios, verificando capacidad.
+    Todo en una transacción.
+    """
+    async with conn.transaction():
+        try:
+            # 1. Verificar que el alumno existe y está activo
+            es_activo = await conn.fetchval('SELECT 1 FROM "AlumnoActivo" WHERE dni = $1', dni)
+            if not es_activo:
+                raise BusinessRuleException("No se pueden modificar horarios de un alumno inactivo.")
+
+            # 2. Borrar todos los horarios existentes para ese alumno
+            await conn.execute('DELETE FROM "Asiste" WHERE dni = $1', dni)
+
+            # 3. Insertar los nuevos horarios
+            if not data.horarios:
+                # Si la lista está vacía, simplemente devolvemos la lista vacía
+                return HorariosAlumnoResponse(horarios=[])
+
+            for horario in data.horarios:
+                nroGrupo = horario.nroGrupo
+                
+                # Reutilizamos la lógica de verificación de capacidad de 'activar_alumno'
+                query_capacidad = '''
+                    SELECT p."capacidadMax", COUNT(a.dni) as inscritos
+                    FROM "Pertenece" p
+                    LEFT JOIN "Asiste" a ON p."nroGrupo" = a."nroGrupo" AND p.dia = a.dia
+                    WHERE p."nroGrupo" = $1 AND p.dia = $2
+                    GROUP BY p."capacidadMax"
+                '''
+                capacidad = await conn.fetchrow(query_capacidad, nroGrupo, horario.dia)
+
+                if not capacidad:
+                    raise NotFoundException("Asignación Horario-Día", f"Grupo {nroGrupo} no está asignado al día {horario.dia}")
+
+                if capacidad['inscritos'] >= capacidad['capacidadMax']:
+                    raise BusinessRuleException(f"El grupo {nroGrupo} del día {horario.dia} está completo. No se pudo actualizar el horario.")
+                
+                # Insertar el nuevo registro de asistencia
+                await conn.execute('''
+                    INSERT INTO "Asiste" (dni, "nroGrupo", dia)
+                    VALUES ($1, $2, $3)
+                ''', dni, nroGrupo, horario.dia)
+            
+            # Devolvemos la lista de horarios que se acaba de establecer
+            return HorariosAlumnoResponse(horarios=data.horarios)
+
+        except (NotFoundException, BusinessRuleException) as e:
+            raise e
+        except Exception as e:
+            raise DatabaseException("actualizar horarios del alumno", str(e))
+
+async def actualizar_perfil_alumno(conn: Connection, dni: str, data: AlumnoPerfilUpdate) -> AlumnoDetalle:
+    """
+    Actualiza la información personal (Persona) y de dirección (Direccion) de un alumno.
+    Si la provincia o localidad no existen, las crea automáticamente.
+    """
+    async with conn.transaction():
+        try:
+            # 1. Verificar que el alumno existe
+            alumno_existe = await conn.fetchval('SELECT 1 FROM "Alumno" WHERE dni = $1', dni)
+            if not alumno_existe:
+                raise NotFoundException("Alumno", dni)
+
+            # 2. CREAR Provincia y Localidad si no existen (en lugar de verificar)
+            
+            # 2.1. Asegurar que la Provincia exista
+            # Si ya existe, ON CONFLICT no hace nada. Si no existe, la crea.
+            await conn.execute('''
+                INSERT INTO "Provincia" ("nomProvincia")
+                VALUES ($1)
+                ON CONFLICT ("nomProvincia") DO NOTHING
+            ''', data.nomProvincia)
+            
+            # 2.2. Asegurar que la Localidad exista
+            # (La provincia ya está garantizada por el paso anterior)
+            await conn.execute('''
+                INSERT INTO "Localidad" ("nomLocalidad", "nomProvincia")
+                VALUES ($1, $2)
+                ON CONFLICT ("nomLocalidad", "nomProvincia") DO NOTHING
+            ''', data.nomLocalidad, data.nomProvincia)
+
+            # 3. Actualizar la tabla "Persona"
+            await conn.execute('''
+                UPDATE "Persona"
+                SET nombre = $1, apellido = $2, sexo = $3, email = $4, telefono = $5
+                WHERE dni = $6
+            ''', data.nombre, data.apellido, data.sexo, data.email, data.telefono, dni)
+
+            # 4. Actualizar la tabla "Direccion"
+            await conn.execute('''
+                UPDATE "Direccion"
+                SET "nomLocalidad" = $1, "nomProvincia" = $2, calle = $3, numero = $4
+                WHERE dni = $5
+            ''', data.nomLocalidad, data.nomProvincia, data.calle, data.numero, dni)
+
+            # 5. Devolver los datos actualizados llamando al servicio que ya teníamos
+            return await obtener_detalle_alumno(conn, dni)
+
+        except NotFoundException:
+            raise
+        except Exception as e:
+            # Manejar posibles errores de unicidad (ej. email o telefono duplicado)
+            if "unique constraint" in str(e).lower():
+                if "persona_email_key" in str(e).lower():
+                    raise DuplicateEntryException("email", data.email)
+                if "persona_telefono_key" in str(e).lower():
+                    raise DuplicateEntryException("telefono", data.telefono)
+            raise DatabaseException("actualizar perfil de alumno", str(e))
+
+async def obtener_detalle_alumno_auth(conn: Connection, dni: str) -> AlumnoDetalle:
+    """
+    Servicio para obtener la vista detallada de un único alumno por su DNI.
+    """
+    try:
+        query = """
+        SELECT
+            p.dni,
+            p.nombre,
+            p.apellido,
+            p.sexo,
+            p.email,
+            p.telefono,
+            (CASE WHEN aa.dni IS NOT NULL THEN TRUE ELSE FALSE END) as activo,
+            (
+                SELECT COUNT(*)
+                FROM "Cuota" c
+                WHERE c.dni = a.dni AND c.pagada = FALSE
+            ) as "cuotasPendientes",
+            COALESCE(
+                (
+                    SELECT
+                        CASE
+                            WHEN LEFT(MIN(asis."nroGrupo"), 1) IN ('1', '2') THEN 'Mañana'
+                            WHEN LEFT(MIN(asis."nroGrupo"), 1) IN ('3', '4', '5') THEN 'Tarde'
+                            ELSE 'No asignado'
+                        END
+                    FROM "Asiste" asis
+                    WHERE asis.dni = a.dni
+                ),
+                'No asignado'
+            ) as turno,
+            a."nombreSuscripcion" as suscripcion,
+            a."nombreTrabajo" as trabajoactual,
+            d."nomProvincia" as provincia,
+            d."nomLocalidad" as localidad,
+            d.calle,
+            d.numero as nro,
+            a.nivel as nivel
+        FROM "Alumno" a
+        JOIN "Persona" p ON a.dni = p.dni
+        LEFT JOIN "AlumnoActivo" aa ON a.dni = aa.dni
+        LEFT JOIN "Direccion" d ON a.dni = d.dni
+        WHERE a.dni = $1;
+        """
+        
+        result = await conn.fetchrow(query, dni)
+        
+        if not result:
+            raise NotFoundException("Alumno", dni)
+            
+        return AlumnoDetalle(**dict(result))
+
+    except NotFoundException:
+        raise
+    except Exception as e:
+        raise DatabaseException("obtener detalle de alumno", str(e))
+
+async def actualizar_plan_alumno(conn: Connection, dni: str, data: AlumnoPlanUpdate) -> None:
+    """
+    Actualiza el plan de entrenamiento (suscripción, trabajo, nivel) de un alumno.
+    Valida que la nueva suscripción y trabajo existan.
+    """
+    async with conn.transaction():
+        try:
+            # 1. Verificar que el Alumno exista
+            alumno_existe = await conn.fetchval('SELECT 1 FROM "Alumno" WHERE dni = $1', dni)
+            if not alumno_existe:
+                raise NotFoundException("Alumno", dni)
+            
+            # 2. Validar FK de Suscripcion
+            suscripcion_existe = await conn.fetchval('SELECT 1 FROM "Suscripcion" WHERE "nombreSuscripcion" = $1', data.nombreSuscripcion)
+            if not suscripcion_existe:
+                raise NotFoundException("Suscripción", data.nombreSuscripcion)
+
+            # 3. Validar FK de Trabajo
+            trabajo_existe = await conn.fetchval('SELECT 1 FROM "Trabajo" WHERE "nombreTrabajo" = $1', data.nombreTrabajo)
+            if not trabajo_existe:
+                raise NotFoundException("Trabajo", data.nombreTrabajo)
+            
+            # 4. Actualizar la tabla "Alumno"
+            await conn.execute('''
+                UPDATE "Alumno"
+                SET "nombreSuscripcion" = $1, "nombreTrabajo" = $2, nivel = $3
+                WHERE dni = $4
+            ''', data.nombreSuscripcion, data.nombreTrabajo, data.nivel, dni)
+            
+            # 5. Devolver los datos actualizados llamando al servicio existente
+            return await obtener_detalle_alumno(conn, dni)
+
+        except NotFoundException:
+            raise # Re-lanzar para el handler
+        except Exception as e:
+            raise DatabaseException("actualizar plan de alumno", str(e))
+
+async def eliminar_alumno(conn: Connection, dni: str) -> None:
+    """
+    Elimina un alumno del sistema.
+    Al borrar el registro de la tabla 'Persona', la base de datos elimina automáticamente
+    (ON DELETE CASCADE) los registros en 'Alumno', 'Direccion', 'Cuota', 'Asiste', etc.
+    """
+    async with conn.transaction():
+        try:
+            # 1. Verificar primero si el alumno existe
+            # (Si intentamos borrar directo de Persona, podríamos borrar a alguien que no es alumno)
+            es_alumno = await conn.fetchval('SELECT 1 FROM "Alumno" WHERE dni = $1', dni)
+            
+            if not es_alumno:
+                raise NotFoundException("Alumno", dni)
+
+            # 2. Eliminar la Persona raíz
+            # Esto dispara los CASCADE definidos en tu script SQL
+            await conn.execute('DELETE FROM "Persona" WHERE dni = $1', dni)
+            
+        except NotFoundException:
+            raise
+        except Exception as e:
+            raise DatabaseException("eliminar alumno", str(e))
+
+async def desactivar_alumno(conn: Connection, dni: str) -> None:
+    """
+    Pasa a un alumno de estado 'Activo' a 'Inactivo'.
+    1. Lo elimina de 'AlumnoActivo' (El CASCADE borra sus horarios en 'Asiste').
+    2. Lo inserta en 'AlumnoInactivo'.
+    3. Las cuotas se mantienen intactas.
+    """
+    async with conn.transaction():
+        try:
+            # 1. Verificar que sea un alumno activo
+            es_activo = await conn.fetchval('SELECT 1 FROM "AlumnoActivo" WHERE dni = $1', dni)
+            
+            if not es_activo:
+                # Verificamos si ya es inactivo para dar un mensaje más claro
+                es_inactivo = await conn.fetchval('SELECT 1 FROM "AlumnoInactivo" WHERE dni = $1', dni)
+                if es_inactivo:
+                    raise BusinessRuleException("El alumno ya se encuentra en estado inactivo.")
+                
+                # Si no está en ninguna, quizás no es alumno
+                raise NotFoundException("Alumno Activo", dni)
+
+            # 2. Eliminar de Activos
+            # Gracias a tu SQL, esto borra automáticamente los registros en "Asiste"
+            await conn.execute('DELETE FROM "AlumnoActivo" WHERE dni = $1', dni)
+
+            # 3. Insertar en Inactivos
+            await conn.execute('INSERT INTO "AlumnoInactivo" (dni) VALUES ($1)', dni)
+
+        except (BusinessRuleException, NotFoundException):
+            raise
+        except Exception as e:
+            raise DatabaseException("desactivar alumno", str(e))
+
+async def reactivar_alumno(conn: Connection, dni: str) -> None:
+    """
+    Pasa a un alumno de estado 'Inactivo' a 'Activo'.
+    1. Verifica que esté en 'AlumnoInactivo'.
+    2. Lo elimina de 'AlumnoInactivo'.
+    3. Lo inserta en 'AlumnoActivo'.
+    """
+    async with conn.transaction():
+        try:
+            # 1. Verificar origen
+            es_inactivo = await conn.fetchval('SELECT 1 FROM "AlumnoInactivo" WHERE dni = $1', dni)
+            
+            if not es_inactivo:
+                # Verificamos si ya es activo para dar feedback
+                es_activo = await conn.fetchval('SELECT 1 FROM "AlumnoActivo" WHERE dni = $1', dni)
+                if es_activo:
+                    raise BusinessRuleException("El alumno ya se encuentra activo.")
+                
+                raise NotFoundException("Alumno Inactivo", dni)
+
+            # 2. Mover de tabla
+            await conn.execute('DELETE FROM "AlumnoInactivo" WHERE dni = $1', dni)
+            await conn.execute('INSERT INTO "AlumnoActivo" (dni) VALUES ($1)', dni)
+
+        except (BusinessRuleException, NotFoundException):
+            raise
+        except Exception as e:
+            raise DatabaseException("reactivar alumno", str(e))
+
+async def crear_alumno_completo(conn: Connection, data: AlumnoCreateFull) -> AlumnoActivateResponse:
+    """
+    Crea un alumno desde cero: Persona -> Dirección -> Alumno -> Activo -> Horarios.
+    NO genera cuota inicial.
+    """
+    async with conn.transaction():
+        try:
+            # 1. Validar duplicados (DNI, Email, Usuario)
+            persona_existe = await conn.fetchval(
+                'SELECT 1 FROM "Persona" WHERE dni = $1 OR email = $2', 
+                data.dni, data.email
+            )
+            if persona_existe:
+                raise DuplicateEntryException("Persona (DNI, Email o Usuario)", data.dni)
+
+            # 2. Validar FKs de Plan (Trabajo y Suscripción)
+            trabajo_existe = await conn.fetchval('SELECT 1 FROM "Trabajo" WHERE "nombreTrabajo" = $1', data.nombreTrabajo)
+            if not trabajo_existe:
+                raise NotFoundException("Trabajo", data.nombreTrabajo)
+            
+            # (Cambio) Solo verificamos existencia, no traemos el precio
+            suscripcion_existe = await conn.fetchval('SELECT 1 FROM "Suscripcion" WHERE "nombreSuscripcion" = $1', data.nombreSuscripcion)
+            if not suscripcion_existe:
+                raise NotFoundException("Suscripción", data.nombreSuscripcion)
+
+            # 3. Crear Persona (Pass = Hash del DNI)
+            hashed_pass = get_password_hash(data.dni)
+            await conn.execute('''
+                INSERT INTO "Persona" (dni, nombre, apellido, sexo, telefono, email, usuario, contrasenia, "requiereCambioClave")
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+            ''', data.dni, data.nombre, data.apellido, data.sexo, data.telefono, data.email, data.dni, hashed_pass)
+
+            # 4. Crear Dirección (Upsert Provincia/Localidad)
+            await conn.execute('INSERT INTO "Provincia" ("nomProvincia") VALUES ($1) ON CONFLICT DO NOTHING', data.nomProvincia)
+            await conn.execute('INSERT INTO "Localidad" ("nomLocalidad", "nomProvincia") VALUES ($1, $2) ON CONFLICT DO NOTHING', data.nomLocalidad, data.nomProvincia)
+            
+            await conn.execute('''
+                INSERT INTO "Direccion" ("nomLocalidad", "nomProvincia", numero, calle, dni)
+                VALUES ($1, $2, $3, $4, $5)
+            ''', data.nomLocalidad, data.nomProvincia, data.numero, data.calle, data.dni)
+
+            # 5. Crear Alumno
+            await conn.execute('''
+                INSERT INTO "Alumno" (dni, "nombreTrabajo", "nombreSuscripcion", nivel)
+                VALUES ($1, $2, $3, $4)
+            ''', data.dni, data.nombreTrabajo, data.nombreSuscripcion, data.nivel)
+
+            # 6. Activar Alumno
+            await conn.execute('INSERT INTO "AlumnoActivo" (dni) VALUES ($1)', data.dni)
+
+            # 7. Asignar Horarios (Verificando cupo)
+            for horario in data.horarios:
+                nroGrupo = horario.nroGrupo
+                
+                # Check capacidad
+                query_capacidad = '''
+                    SELECT p."capacidadMax", COUNT(a.dni) as inscritos
+                    FROM "Pertenece" p
+                    LEFT JOIN "Asiste" a ON p."nroGrupo" = a."nroGrupo" AND p.dia = a.dia
+                    WHERE p."nroGrupo" = $1 AND p.dia = $2
+                    GROUP BY p."capacidadMax"
+                '''
+                capacidad = await conn.fetchrow(query_capacidad, nroGrupo, horario.dia)
+
+                if not capacidad:
+                    raise NotFoundException("Grupo/Día", f"{nroGrupo}-{horario.dia}")
+                
+                if capacidad['inscritos'] >= capacidad['capacidadMax']:
+                    raise BusinessRuleException(f"El grupo {nroGrupo} del día {horario.dia} está completo.")
+
+                await conn.execute('''
+                    INSERT INTO "Asiste" (dni, "nroGrupo", dia) VALUES ($1, $2, $3)
+                ''', data.dni, nroGrupo, horario.dia)
+
+            # [ELIMINADO] Bloque de generación de cuota
+
+            return AlumnoActivateResponse(
+                dni=data.dni,
+                nombre=data.nombre,
+                apellido=data.apellido,
+                email=data.email,
+                message="Alumno creado y activado correctamente."
+            )
+
+        except (DuplicateEntryException, NotFoundException, BusinessRuleException):
+            raise
+        except Exception as e:
+            raise DatabaseException("crear alumno completo", str(e))
+
+
