@@ -17,7 +17,12 @@ gym_Abito_API-main/venv/
 gym_Abito_API-main/.env
 gym_Abito_API-main/*.log
 gym_Abito_API-main/__pycache__/
+gym_Abito_API-main/__pycache__/*
 gym_Abito_API-main/pruebas_python/
+
+# Ignora __pycache__ en CUALQUIER subcarpeta del repositorio
+**/__pycache__/
+*.py[cod]
 
 # ==============================================================================
 # FRONTEND (Proyecto-Gym-Abito-main)
