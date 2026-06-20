@@ -1,16 +1,16 @@
 # tests/test_api_gym.py
 
 
-def test_imprimir_rutas_disponibles(client):
-    """
-    Herramienta de QA: Imprime todas las rutas registradas en la API.
-    """
-    from src.main import app
-    print("\n--- RUTAS REGISTRADAS EN FASTAPI ---")
-    for route in app.routes:
-        print(f"Ruta: {getattr(route, 'path', 'N/A')} | Nombre: {getattr(route, 'name', 'N/A')}")
-    print("------------------------------------\n")
-    assert True
+# def test_imprimir_rutas_disponibles(client):
+#     """
+#     Herramienta de QA: Imprime todas las rutas registradas en la API.
+#     """
+#     from src.main import app
+#     print("\n--- RUTAS REGISTRADAS EN FASTAPI ---")
+#     for route in app.routes:
+#         print(f"Ruta: {getattr(route, 'path', 'N/A')} | Nombre: {getattr(route, 'name', 'N/A')}")
+#     print("------------------------------------\n")
+#     assert True
 
 
 def test_cp01_registro_paso1_alumno(client):

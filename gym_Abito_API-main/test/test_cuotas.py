@@ -25,7 +25,7 @@ async def db_conn():
             host="localhost",
             port=5432,
             user="postgres",
-            password="postgres",
+            password="FerBD42276",
             database="db_gym_test"
         )
     except Exception as e:
