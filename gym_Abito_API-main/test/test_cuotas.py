@@ -46,18 +46,18 @@ async def test_tc_f_01_generacion_masiva_cuotas_mensuales(db_conn, mocker):
     mock_date.today.return_value = date(2026, 6, 5)
 
     await db_conn.execute("""
-        INSERT INTO "Persona" (dni, nombre, apellido, telefono, sexo)
+        INSERT INTO "Persona" (dni, nombre, apellido, telefono, sexo, email, usuario, contrasenia)
         VALUES
-            ('11111111', 'Alumno', 'Uno', '3624111111', 'M'),
-            ('22222222', 'Alumno', 'Dos', '3624222222', 'F')
+            ('11111111', 'Alumno', 'Uno', '3624111111', 'M', 'alumno1@test.com', 'alumno1test', 'hashed_pass_test'),
+            ('22222222', 'Alumno', 'Dos', '3624222222', 'F', 'alumno2@test.com', 'alumno2test', 'hashed_pass_test')
         ON CONFLICT (dni) DO NOTHING;
 
         INSERT INTO "Suscripcion" ("nombreSuscripcion", precio)
         VALUES ('Pase Libre', 15000)
         ON CONFLICT ("nombreSuscripcion") DO NOTHING;
 
-        INSERT INTO "Trabajo" ("nombreTrabajo")
-        VALUES ('Funcional')
+        INSERT INTO "Trabajo" ("nombreTrabajo", descripcion)
+        VALUES ('Funcional', 'Entrenamiento funcional')
         ON CONFLICT ("nombreTrabajo") DO NOTHING;
 
         INSERT INTO "Alumno" (dni, "nombreSuscripcion", "nombreTrabajo")

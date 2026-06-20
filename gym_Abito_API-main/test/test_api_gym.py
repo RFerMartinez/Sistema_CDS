@@ -1,18 +1,6 @@
 # tests/test_api_gym.py
 
 
-# def test_imprimir_rutas_disponibles(client):
-#     """
-#     Herramienta de QA: Imprime todas las rutas registradas en la API.
-#     """
-#     from src.main import app
-#     print("\n--- RUTAS REGISTRADAS EN FASTAPI ---")
-#     for route in app.routes:
-#         print(f"Ruta: {getattr(route, 'path', 'N/A')} | Nombre: {getattr(route, 'name', 'N/A')}")
-#     print("------------------------------------\n")
-#     assert True
-
-
 def test_cp01_registro_paso1_alumno(client):
     """
     CP-01: Verificar el paso 1 del registro de un nuevo alumno.
@@ -28,8 +16,14 @@ def test_cp01_registro_paso1_alumno(client):
 
     response = client.post("/auth/registro-paso1", json=payload_paso1)
 
-    assert response.status_code in [200, 409], (
-        f"Se esperaba 200 (éxito) o 409 (ya existe), pero se obtuvo {response.status_code}: {response.text}"
+    esperado = [200, 409]
+    print(f"\n[CP-01] Registro Paso 1 alumno")
+    print(f"  HTTP esperado: {esperado}")
+    print(f"  HTTP obtenido: {response.status_code}")
+    print(f"  Respuesta: {response.json()}")
+
+    assert response.status_code in esperado, (
+        f"Se esperaba {esperado}, pero se obtuvo {response.status_code}: {response.text}"
     )
 
 
@@ -39,7 +33,13 @@ def test_cp02_acceso_sin_token(client):
     """
     response = client.get("/cuotas/mis-cuotas")
 
-    assert response.status_code == 401, "El sistema debió bloquear el acceso con 401"
+    esperado = 401
+    print(f"\n[CP-02] Acceso sin token a endpoint protegido")
+    print(f"  HTTP esperado: {esperado}")
+    print(f"  HTTP obtenido: {response.status_code}")
+    print(f"  Respuesta: {response.json()}")
+
+    assert response.status_code == esperado, "El sistema debió bloquear el acceso con 401"
 
     data = response.json()
     assert data["detail"] == "Not authenticated"
@@ -60,8 +60,14 @@ def test_cp03_limite_capacidad_grupo(client, empleado_token):
         headers=empleado_token
     )
 
-    assert response.status_code in [400, 404, 422], (
-        f"Se esperaba error, pero se obtuvo {response.status_code}"
+    esperado = [400, 404, 422]
+    print(f"\n[CP-03] Límite capacidad de grupo")
+    print(f"  HTTP esperado: {esperado}")
+    print(f"  HTTP obtenido: {response.status_code}")
+    print(f"  Respuesta: {response.json()}")
+
+    assert response.status_code in esperado, (
+        f"Se esperaba {esperado}, pero se obtuvo {response.status_code}"
     )
 
 
@@ -88,8 +94,14 @@ def test_cp04_rollback_cuota_financiera(client, admin_token):
         headers=admin_token
     )
 
-    assert response.status_code in [200, 404], (
-        f"Se esperaba 200 o 404, pero se obtuvo {response.status_code}: {response.text}"
+    esperado = [200, 404]
+    print(f"\n[CP-04] Rollback cuota financiera (cuota_id={cuota_id})")
+    print(f"  HTTP esperado: {esperado}")
+    print(f"  HTTP obtenido: {response.status_code}")
+    print(f"  Respuesta: {response.json()}")
+
+    assert response.status_code in esperado, (
+        f"Se esperaba {esperado}, pero se obtuvo {response.status_code}: {response.text}"
     )
 
 
@@ -118,6 +130,12 @@ def test_cp05_dni_duplicado(client, admin_token):
         headers=admin_token
     )
 
-    assert response.status_code in [400, 409, 500], (
-        f"Se esperaba error por duplicado, pero se obtuvo: {response.status_code}"
+    esperado = [400, 409, 500]
+    print(f"\n[CP-05] DNI duplicado (dni=45104930)")
+    print(f"  HTTP esperado: {esperado}")
+    print(f"  HTTP obtenido: {response.status_code}")
+    print(f"  Respuesta: {response.json()}")
+
+    assert response.status_code in esperado, (
+        f"Se esperaba {esperado}, pero se obtuvo: {response.status_code}"
     )
