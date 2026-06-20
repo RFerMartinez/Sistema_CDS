@@ -1,25 +1,43 @@
+# tests/conftest.py
 import pytest
 import pytest_asyncio
+from fastapi.testclient import TestClient
 from httpx import AsyncClient, ASGITransport
 from src.main import app
-from src.core.session import get_db
 
-# Mock para simular conexión a DB en pruebas
-async def override_get_db():
-    # En un entorno real, aquí inicializamos asyncpg.connect('.../test_db')
-    # Simularemos un objeto de conexión para el ejemplo
-    class MockConnection:
-        async def fetchval(self, query, *args): return True
-        async def execute(self, query, *args): return "UPDATE 1"
-        async def fetch(self, query, *args): return []
-    
-    yield MockConnection()
 
-app.dependency_overrides[get_db] = override_get_db
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(app) as c:
+        yield c
 
-@pytest_asyncio.fixture
+
+@pytest.fixture(scope="module")
+def admin_token(client):
+    login_payload = {
+        "username": "davorcristoff04@gmail.com",
+        "password": "45104930_Davor"
+    }
+    response = client.post("/auth/login", data=login_payload)
+    assert response.status_code == 200, f"Fallo el login del Administrador: {response.text}"
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="module")
+def empleado_token(client):
+    login_payload = {
+        "username": "34568237",
+        "password": "Joseabito26"
+    }
+    response = client.post("/auth/login", data=login_payload)
+    assert response.status_code == 200, f"Fallo el login del Empleado: {response.text}"
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture(scope="function")
 async def async_client():
-    """Cliente asíncrono para consumir los endpoints de FastAPI"""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
-        yield client
-
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac

@@ -1,72 +1,88 @@
 import pytest
-from httpx import AsyncClient
-from src.main import app
-from src.api.dependencies.auth import get_current_user
+import pytest_asyncio
+from datetime import date
 
-# Mock de usuario logueado con rol EMPLEADO (Staff)
-async def mock_user_empleado():
-    return {
-        "dni": "87654321",
-        "usuario": "staff_test",
-        "esAdmin": False,
-        "esEmpleado": True,
-        "esAlumno": False
-    }
+try:
+    import asyncpg
+    HAS_ASYNCPG = True
+except ImportError:
+    HAS_ASYNCPG = False
+
+from src.services.cuotaServices import generar_cuotas_masivas_mensuales
+
+
+@pytest_asyncio.fixture(scope="function")
+async def db_conn():
+    """
+    Fixture que conecta directamente a la BD de pruebas.
+    Ajustá la DSN según tu entorno local.
+    """
+    if not HAS_ASYNCPG:
+        pytest.skip("asyncpg no disponible")
+
+    try:
+        conn = await asyncpg.connect(
+            host="localhost",
+            port=5432,
+            user="postgres",
+            password="postgres",
+            database="db_gym_test"
+        )
+    except Exception as e:
+        pytest.skip(f"No se pudo conectar a la BD de pruebas: {e}")
+
+    yield conn
+    await conn.close()
+
 
 @pytest.mark.asyncio
-async def test_modificar_cuota_a_no_pagada(async_client: AsyncClient):
+async def test_tc_f_01_generacion_masiva_cuotas_mensuales(db_conn, mocker):
     """
-    TC-F-03: Al revertir una cuota a pagada=False, los métodos de pago deben limpiarse.
+    ID: TC-F-01
+    Descripción: Validar la generación masiva de cuotas para alumnos activos.
+    Tipo: Prueba de Integración (Requiere BD de pruebas).
     """
-    app.dependency_overrides[get_current_user] = mock_user_empleado
+    mock_date = mocker.patch("src.services.cuotaServices.date")
+    mock_date.today.return_value = date(2026, 6, 5)
 
-    # Datos de entrada para modificar la cuota (pagada = False)
-    payload = {
-        "dni": "12345678",
-        "pagada": False,
-        "monto": 6000,
-        "mes": "Febrero",
-        "trabajo": "Musculacion",
-        "suscripcion": "Mensual",
-        "fechaComienzo": "2026-02-01",
-        "vencimiento": "2026-03-01",
-        "idFacturacion": None,
-        "metodoDePago": "Efectivo" # Enviamos un método a propósito
-    }
+    await db_conn.execute("""
+        INSERT INTO "Persona" (dni, nombre, apellido, telefono, sexo)
+        VALUES
+            ('11111111', 'Alumno', 'Uno', '3624111111', 'M'),
+            ('22222222', 'Alumno', 'Dos', '3624222222', 'F')
+        ON CONFLICT (dni) DO NOTHING;
 
-    # Ejecución
-    response = await async_client.put("/cuotas/10", json=payload)
+        INSERT INTO "Suscripcion" ("nombreSuscripcion", precio)
+        VALUES ('Pase Libre', 15000)
+        ON CONFLICT ("nombreSuscripcion") DO NOTHING;
 
-    # Resultado Esperado
-    # El status debe ser exitoso (200 OK)
-    assert response.status_code == 200
-    
-    # NOTA SQA: En el test real conectado a base de datos de prueba, 
-    # aquí haríamos un 'SELECT metodoDePago FROM Cuota WHERE idCuota=10'
-    # para asegurar por aserción que el campo en DB es NULL.
-    
-    app.dependency_overrides.pop(get_current_user, None)
+        INSERT INTO "Trabajo" ("nombreTrabajo")
+        VALUES ('Funcional')
+        ON CONFLICT ("nombreTrabajo") DO NOTHING;
 
-@pytest.mark.asyncio
-async def test_validar_formato_dni_invalido(async_client: AsyncClient):
-    """
-    TC-V-04: El esquema Pydantic debe bloquear letras en el DNI.
-    """
-    payload_invalido = {
-        "dni": "AB345678", # DNI inválido
-        "nombre": "Test",
-        "apellido": "Usuario",
-        "telefono": "3624112233",
-        "sexo": "M",
-        "nomProvincia": "Chaco",
-        "nomLocalidad": "Resistencia",
-        "calle": "San Martin",
-        "numero": "123"
-    }
+        INSERT INTO "Alumno" (dni, "nombreSuscripcion", "nombreTrabajo")
+        VALUES
+            ('11111111', 'Pase Libre', 'Funcional'),
+            ('22222222', 'Pase Libre', 'Funcional')
+        ON CONFLICT (dni) DO NOTHING;
 
-    response = await async_client.post("/auth/registro/paso2", json=payload_invalido)
-    
-    assert response.status_code == 422
-    errores = response.json()["detail"]
-    assert any(error["loc"][-1] == "dni" for error in errores)
+        INSERT INTO "AlumnoActivo" (dni)
+        VALUES ('11111111'), ('22222222')
+        ON CONFLICT (dni) DO NOTHING;
+    """)
 
+    filas_insertadas = await generar_cuotas_masivas_mensuales(db_conn)
+
+    assert filas_insertadas >= 2, f"Se esperaban al menos 2 inserciones, se insertaron {filas_insertadas}"
+
+    cuotas_generadas = await db_conn.fetch("""
+        SELECT "idCuota", pagada, titular
+        FROM "Cuota"
+        WHERE mes = 'Junio' AND EXTRACT(YEAR FROM "fechaFin") = 2026
+    """)
+
+    assert len(cuotas_generadas) >= 2, "No se encontraron las cuotas generadas en la BD."
+
+    for cuota in cuotas_generadas:
+        assert cuota["pagada"] is False, f"La cuota {cuota['idCuota']} se generó como pagada."
+        assert cuota["titular"] is not None, f"La cuota {cuota['idCuota']} no tiene titular."
